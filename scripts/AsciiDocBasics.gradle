@@ -37,10 +37,10 @@ println "outputPath: ${config.outputPath}"
 
 // Why?
 // Snippets are genearted by an maven-build project, but the doctoolchain application is runned by gradle via command-line call.
-// I need a way to set an custom snippet location to reuse the spring-rest-docs asccidoctor plugin from doctoolchain, and so I forked "spring-restdocs-asciidoctor"
-// and so I adjusted the "SnippetsDirectoryResolver.class" to provide an way to set from outside a new snippet-directory.
-System.setProperty("restdocs.asciidoctor.snippets", "target/generated-snippets")
-logger.info("Value of 'restdocs.asciidoctor.snippets' is {}", System.properties.getProperty("restdocs.asciidoctor.snippets"))
+// the SnippetsDirectoryResolver from spring-rest-docs/restdocs-asciidoctor use the System Propterty "maven.home" to decicde which snippets-directory-path is used.
+// To fix that it use the gradle specific snippets-directory-path, I explicitly create the System Property "maven.home" with an not "Null" evaluated value to use the maven snippets-directory-path within this gradle build.
+// The enthancement is, that a developer/user who write the docs in the maven project, has not to thing about something diffrent behavior as the official spring-rest-docs documentation describes.
+System.setProperty("maven.home", "/usr/local/Cellar/maven/3.5.3/libexec")
 
 ext {
 	srcDir = "${docDir}/${config.inputPath}"
@@ -61,10 +61,7 @@ dependencies {
 	// but then reveal.js is broken...
 	// https://github.com/asciidoctor/asciidoctor-diagram/issues/161
 	asciidoctor 'org.asciidoctor:asciidoctorj-diagram:1.5.4.1'
-	// Why?
-	// To make use of my modified version of "SnippetsDirectoryResolver.class" from "spring-restdocs-asciidoctor".
-	// See above, for details: System.setProperty("restdocs.asciidoctor.snippets", "target/generated-snippets").
-	asciidoctor group: 'io.github.tobiashochguertel.restdocs', name: 'spring-restdocs-asciidoctor', version: '2.0.2.BUILD-SNAPSHOT'
+	asciidoctor group: 'org.springframework.restdocs', name: 'spring-restdocs-asciidoctor', version: '2.0.2.BUILD-SNAPSHOT'
 }
 
 asciidoctorj {
@@ -88,8 +85,8 @@ def type = tasks.withType(AsciidoctorTask) { docTask ->
 	outputDir = file(targetDir)
 	sourceDir = file(srcDir)
 
-	attributes             \
-                        'pdf-stylesdir': "${docDir}/pdfTheme",
+	attributes                         \
+                                    'pdf-stylesdir': "${docDir}/pdfTheme",
 			'pdf-style': 'custom',
 			'source-highlighter': 'coderay',
 			'imagesdir': 'images',
@@ -128,11 +125,7 @@ task generateHTML(
 		group: 'docToolchain',
 		description: 'use html5 as asciidoc backend') {
 
-	logger.info('An info log message.')
-	logger.error('An error log message.') // appears, default logs errors and warnings, but not info to console.
-
-	attributes            \
-                   'plantUMLDir': ''
+	attributes 'plantUMLDir': ''
 
 	onlyIf {
 		!sourceFiles.findAll {
@@ -158,8 +151,8 @@ task generatePDF(
 		group: 'docToolchain',
 		description: 'use pdf as asciidoc backend') {
 
-	attributes            \
-                   'plantUMLDir': file("${docDir}/${config.outputPath}/images/plantUML/").path
+	attributes                        \
+                               'plantUMLDir': file("${docDir}/${config.outputPath}/images/plantUML/").path
 
 	onlyIf {
 		!sourceFiles.findAll {
@@ -209,8 +202,8 @@ task generateDeck(
 		group: 'docToolchain',
 		description: 'use revealJs as asciidoc backend to create a presentation') {
 
-	attributes            \
-                   'plantUMLDir': '',
+	attributes                        \
+                               'plantUMLDir': '',
 			'idprefix': 'slide-',
 			'idseparator': '-',
 			'docinfo1': '',
